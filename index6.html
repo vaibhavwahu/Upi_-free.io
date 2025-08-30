@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spin & Win</title>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; margin:0; padding:0; }
+  h1 { margin-top: 20px; }
+  .wheel-container { margin: 20px auto; position: relative; width: 300px; height: 300px; }
+  canvas { border-radius: 50%; border: 8px solid #333; }
+  .arrow { position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+    width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent;
+    border-bottom: 30px solid red; }
+  button { margin-top: 20px; padding: 10px 25px; font-size: 18px; background: green;
+    color: white; border: none; border-radius: 6px; cursor: pointer; }
+  button:hover { background: darkgreen; }
+  /* Popup */
+  .popup, .upi-popup { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6); justify-content: center; align-items: center; }
+  .popup-content { background: #fff; padding: 20px; border-radius: 8px; text-align: center; width: 280px; }
+  .popup-content h2, .popup-content h3 { margin-bottom: 15px; }
+  .popup-content button { background: blue; margin-top: 10px; }
+  /* Withdraw Page */
+  #withdrawPage { display: none; padding: 20px; }
+  .channels button { display: block; width: 80%; margin: 10px auto; padding: 12px;
+    font-size: 16px; background: blue; color: white; border: none; border-radius: 6px; cursor: pointer; }
+  .channels button:hover { background: darkblue; }
+  #joinAllBtn { background: gray; cursor: not-allowed; }
+  .upi-section { display: none; margin-top: 20px; }
+  input { padding: 10px; width: 80%; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; }
+  .submit-btn { background: green; color: white; padding: 12px 20px; border: none; border-radius: 6px;
+    cursor: pointer; font-size: 16px; }
+  .submit-btn:hover { background: darkgreen; }
+  .message { margin-top: 20px; font-size: 18px; color: darkred; }
+  @media(max-width:500px){
+    .wheel-container{ width: 220px; height: 220px; }
+    canvas{ width: 220px; height: 220px; }
+    button{ font-size:16px; padding:8px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Spin Page -->
+<div id="spinPage">
+  <h1>Spin & Win</h1>
+  <div class="wheel-container">
+    <div class="arrow"></div>
+    <canvas id="wheel" width="300" height="300"></canvas>
+  </div>
+  <button onclick="spin()">SPIN</button>
+</div>
+
+<!-- Result Popup -->
+<div id="popup" class="popup">
+  <div class="popup-content">
+    <h2 id="resultText"></h2>
+    <button onclick="goWithdraw()">Withdraw</button>
+  </div>
+</div>
+
+<!-- Withdraw Page -->
+<div id="withdrawPage">
+  <h1>Complete Your Withdrawal</h1>
+  <h2 id="amountText"></h2>
+  <div class="channels">
+    <button onclick="openChannel('https://t.me/+QgY8YrebPdY4OGFl',this)">Join Channel 1</button>
+    <button onclick="openChannel('https://t.me/+W8HADhDPY6YwZTFl',this)">Join Channel 2</button>
+    <button onclick="openChannel('https://t.me/+e0ZzWEo_-axhOWY1',this)">Join Channel 3</button>
+    <button onclick="openChannel('https://t.me/+8YmqgV-uVbcwMzI1',this)">Join Channel 4</button>
+    <button onclick="openChannel('https://t.me/+2vlj682JHkQwYTA9',this)">Join Channel 5</button>
+    <button onclick="openChannel('https://t.me/+kuP94pqTjAowMmI1',this)">Join Channel 6</button>
+    <button onclick="openChannel('https://t.me/channel7',this)">Join Channel 7</button>
+    <button onclick="openChannel('https://t.me/channel8',this)">Join Channel 8</button>
+    <button onclick="openChannel('https://t.me/channel9',this)">Join Channel 9</button>
+    <button onclick="openChannel('https://t.me/channel10',this)">Join Channel 10</button>
+  </div>
+  <button id="joinAllBtn" class="submit-btn" disabled onclick="showUPI()">I have joined all channels</button>
+</div>
+
+<!-- UPI Popup -->
+<div id="upiPopup" class="upi-popup">
+  <div class="popup-content">
+    <h3>Enter Your UPI ID</h3>
+    <input type="text" id="upiInput" placeholder="example@upi">
+    <button class="submit-btn" onclick="submitUPI()">Submit</button>
+    <div class="message" id="msg"></div>
+    <button onclick="document.getElementById('upiPopup').style.display='none'" style="margin-top:10px;">Close</button>
+  </div>
+</div>
+
+<script>
+const wheel = document.getElementById("wheel");
+const ctx = wheel.getContext("2d");
+const segments = ["100", "200", "300", "400", "500"];
+const colors = ["#FFD700", "#FFA500", "#90EE90", "#87CEFA", "#FF69B4"];
+let startAngle = 0, spinning = false, winValue = null;
+
+// Draw Wheel
+function drawWheel() {
+  const arcSize = (2 * Math.PI) / segments.length;
+  for (let i = 0; i < segments.length; i++) {
+    const angle = startAngle + i * arcSize;
+    ctx.beginPath();
+    ctx.fillStyle = colors[i];
+    ctx.moveTo(150, 150);
+    ctx.arc(150, 150, 150, angle, angle + arcSize);
+    ctx.fill();
+    ctx.save();
+    ctx.translate(150,150);
+    ctx.rotate(angle+arcSize/2);
+    ctx.textAlign = "right";
+    ctx.fillStyle="#000";
+    ctx.font="20px Arial";
+    ctx.fillText(segments[i],140,10);
+    ctx.restore();
+  }
+}
+
+// Spin Function
+function spin() {
+  if(spinning) return;
+  spinning=true;
+  const segmentIndex = Math.floor(Math.random() * segments.length);
+  const arcSize = 360 / segments.length;
+  const finalAngle = segmentIndex*arcSize + arcSize/2 + 1440; // 4 spins
+  const duration = 4000;
+  let start = null;
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  function animate(timestamp){
+    if(!start) start=timestamp;
+    const progress = timestamp-start;
+    const easeOut = easeOutCubic(progress/duration);
+    const angle = finalAngle*easeOut;
+    startAngle=(angle*Math.PI)/180;
+    ctx.clearRect(0,0,300,300);
+    drawWheel();
+    if(progress<duration){
+      requestAnimationFrame(animate);
+    } else {
+      spinning=false;
+      showResult(finalAngle);
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+// Show Result
+function showResult(finalAngle){
+  const arcSize = 360 / segments.length;
+  const normalizedAngle = ((finalAngle % 360) + 360) % 360;
+  let index = Math.floor(normalizedAngle / arcSize);
+  index = (segments.length - index) % segments.length;
+  winValue = segments[index];
+  document.getElementById("resultText").innerText = "🎉 You Won " + winValue;
+  document.getElementById("popup").style.display = "flex";
+}
+
+// Go Withdraw Page
+function goWithdraw(){
+  document.getElementById("popup").style.display="none";
+  document.getElementById("spinPage").style.display="none";
+  document.getElementById("withdrawPage").style.display="block";
+  document.getElementById("amountText").innerText="You Won: "+winValue;
+}
+
+// Channels Logic
+let joinedChannels=0;
+const totalChannels=10;
+
+function openChannel(url,btn){
+  window.open(url,'_blank');
+  if(btn.disabled) return;
+  btn.disabled=true;
+  btn.innerText="Joined ✅";
+  joinedChannels++;
+
+  const joinBtn = document.getElementById("joinAllBtn");
+  if(joinedChannels >= totalChannels){
+    joinBtn.disabled=false;
+    joinBtn.style.background="green";
+    joinBtn.style.cursor="pointer";
+    joinBtn.innerText="I have joined all channels ✅";
+    joinBtn.onclick=showUPI;
+  }
+}
+
+// UPI Popup
+function showUPI(){
+  document.getElementById("upiPopup").style.display="flex";
+}
+
+function submitUPI(){
+  const upi=document.getElementById("upiInput").value.trim();
+  const msg=document.getElementById("msg");
+  const upiRegex=/^[\w.\-]{2,}@[a-zA-Z]{2,}$/;
+  if(!upiRegex.test(upi)){
+    msg.innerText="⚠️ Invalid UPI ID format!";
+    return;
+  }
+  msg.innerText="✅ Your withdrawal request has been received. It will be processed within 24 hours.";
+}
+
+drawWheel();
+</script>
+
+</body>
+</html>
